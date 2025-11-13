@@ -1,0 +1,168 @@
+import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
+
+let scene, camera, renderer, controls;
+let model;
+const clock = new THREE.Clock();
+
+init();
+animate();
+
+function init() {
+    // Crear la escena
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+
+    // Configurar la cámara (posición de estudiante dentro del salón)
+    camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+    camera.position.set(0, 1.6, 0); // Altura de ojos humano (1.6m) en el centro
+
+    // Configurar el renderer con WebXR
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    // Habilitar WebXR
+    renderer.xr.enabled = true;
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    // Agregar botón VR
+    const vrButton = VRButton.createButton(renderer);
+    document.body.appendChild(vrButton);
+
+    // Controles de órbita para modo desktop
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 1.6, -3); // Mirar hacia el frente del salón
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 0.5; // Permitir acercarse
+    controls.maxDistance = 20; // Limitar alejamiento
+    controls.maxPolarAngle = Math.PI * 0.95; // Evitar que la cámara vaya bajo el suelo
+    controls.update();
+
+    // Iluminación
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 20, 10);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 50;
+    scene.add(directionalLight);
+
+    // Luz hemisférica para iluminación natural
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
+
+    // Agregar un plano de suelo si el modelo no tiene uno
+    const groundGeometry = new THREE.PlaneGeometry(100, 100);
+    const groundMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x505050,
+        roughness: 0.8,
+        metalness: 0.2
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Cargar el modelo FBX
+    const loader = new FBXLoader();
+    const loadingElement = document.getElementById('loading');
+    
+    loader.load(
+        'models/salon de clases.fbx',
+        (fbx) => {
+            model = fbx;
+            
+            // Configurar sombras para el modelo
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    
+                    // Asegurar que los materiales se rendericen correctamente
+                    if (child.material) {
+                        child.material.needsUpdate = true;
+                    }
+                }
+            });
+
+            // Centrar y posicionar el modelo
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            // Ajustar la escala si el modelo es muy grande o muy pequeño
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 10 / maxDim; // Ajustar a un tamaño razonable
+            model.scale.multiplyScalar(scale);
+            
+            // Posicionar el modelo para que el usuario esté dentro
+            box.setFromObject(model);
+            box.getCenter(center);
+            model.position.x = -center.x;
+            model.position.y = 0; // Modelo en el suelo
+            model.position.z = -center.z;
+
+            scene.add(model);
+            
+            loadingElement.style.display = 'none';
+            console.log('Modelo cargado exitosamente');
+        },
+        (xhr) => {
+            // Progreso de carga
+            const percent = (xhr.loaded / xhr.total) * 100;
+            loadingElement.textContent = `Cargando modelo: ${Math.round(percent)}%`;
+        },
+        (error) => {
+            console.error('Error al cargar el modelo:', error);
+            loadingElement.textContent = 'Error al cargar el modelo. Verifica la consola.';
+            loadingElement.style.color = 'red';
+        }
+    );
+
+    // Manejador de resize
+    window.addEventListener('resize', onWindowResize);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    renderer.setAnimationLoop(render);
+}
+
+function render() {
+    const delta = clock.getDelta();
+    
+    // Actualizar controles solo si no estamos en VR
+    if (!renderer.xr.isPresenting) {
+        controls.update();
+    }
+    
+    // Si el modelo tiene animaciones, actualizarlas aquí
+    if (model && model.mixer) {
+        model.mixer.update(delta);
+    }
+    
+    renderer.render(scene, camera);
+}
