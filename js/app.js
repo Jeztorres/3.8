@@ -5,6 +5,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 let scene, camera, renderer, controls;
 let model;
+let clouds = [];
 const clock = new THREE.Clock();
 
 init();
@@ -13,8 +14,8 @@ animate();
 function init() {
     // Crear la escena
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+    scene.background = new THREE.Color(0x87ceeb); // Cielo azul
+    scene.fog = new THREE.Fog(0xb0d4f1, 100, 500);
 
     // Configurar la cámara (posición de estudiante dentro del salón)
     camera = new THREE.PerspectiveCamera(
@@ -81,6 +82,9 @@ function init() {
     ground.receiveShadow = true;
     scene.add(ground);
 
+    // Crear nubes
+    createClouds();
+
     // Cargar el modelo FBX
     const loader = new FBXLoader();
     const loadingElement = document.getElementById('loading');
@@ -141,6 +145,45 @@ function init() {
     window.addEventListener('resize', onWindowResize);
 }
 
+function createClouds() {
+    // Crear múltiples nubes con diferentes tamaños y posiciones
+    const cloudGeometry = new THREE.SphereGeometry(1, 8, 8);
+    const cloudMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.7,
+        flatShading: true
+    });
+
+    for (let i = 0; i < 25; i++) {
+        const cloud = new THREE.Group();
+        
+        // Crear cada nube con múltiples esferas
+        const numSpheres = Math.floor(Math.random() * 4) + 3;
+        for (let j = 0; j < numSpheres; j++) {
+            const sphere = new THREE.Mesh(cloudGeometry, cloudMaterial);
+            const scale = Math.random() * 2 + 1;
+            sphere.scale.set(scale, scale * 0.8, scale);
+            sphere.position.x = (Math.random() - 0.5) * 4;
+            sphere.position.y = (Math.random() - 0.5) * 1.5;
+            sphere.position.z = (Math.random() - 0.5) * 4;
+            cloud.add(sphere);
+        }
+        
+        // Posicionar nubes en el cielo alrededor del salón
+        cloud.position.x = (Math.random() - 0.5) * 200;
+        cloud.position.y = Math.random() * 30 + 40;
+        cloud.position.z = (Math.random() - 0.5) * 200;
+        
+        // Escala general de la nube
+        const cloudScale = Math.random() * 3 + 2;
+        cloud.scale.set(cloudScale, cloudScale, cloudScale);
+        
+        clouds.push(cloud);
+        scene.add(cloud);
+    }
+}
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -153,6 +196,21 @@ function animate() {
 
 function render() {
     const delta = clock.getDelta();
+    const time = clock.getElapsedTime();
+    
+    // Animar nubes (movimiento lento)
+    clouds.forEach((cloud, index) => {
+        cloud.position.x += Math.sin(time * 0.1 + index) * 0.01;
+        cloud.position.z += Math.cos(time * 0.1 + index) * 0.01;
+        
+        // Si la nube se aleja mucho, reiniciar posición
+        if (Math.abs(cloud.position.x) > 150) {
+            cloud.position.x = -cloud.position.x;
+        }
+        if (Math.abs(cloud.position.z) > 150) {
+            cloud.position.z = -cloud.position.z;
+        }
+    });
     
     // Actualizar controles solo si no estamos en VR
     if (!renderer.xr.isPresenting) {
