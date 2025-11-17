@@ -44,6 +44,12 @@ function init() {
     // Agregar botón VR
     const vrButton = VRButton.createButton(renderer);
     document.body.appendChild(vrButton);
+    
+    // Configurar posición VR - altura humana en el centro
+    renderer.xr.addEventListener('sessionstart', () => {
+        // Ajustar la posición base para VR a altura de ojos humano
+        camera.position.set(0, 1.6, 0);
+    });
 
     // Controles de órbita para modo desktop
     controls = new OrbitControls(camera, renderer.domElement);
