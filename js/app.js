@@ -14,20 +14,20 @@ animate();
 function init() {
     // Crear la escena
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // Cielo azul
+    scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0xb0d4f1, 100, 500);
 
-    // Configurar la cámara (posición de estudiante dentro del salón)
+    // Cámara VR SIEMPRE INICIA EN ORIGEN
     camera = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
         0.1,
         1000
     );
-    camera.position.set(0, 1.6, 0); // Altura de ojos humano (1.6m) en el centro
+    camera.position.set(0, 0, 0); // NO elevamos aquí
 
-    // Configurar el renderer con WebXR - optimizado para carga rápida
-    renderer = new THREE.WebGLRenderer({ 
+    // Configurar Renderer WebXR
+    renderer = new THREE.WebGLRenderer({
         antialias: true,
         powerPreference: "high-performance"
     });
@@ -36,208 +36,133 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    
-    // Habilitar WebXR
     renderer.xr.enabled = true;
+
     document.getElementById('container').appendChild(renderer.domElement);
 
-    // Agregar botón VR
+    // VR Button
     const vrButton = VRButton.createButton(renderer);
     document.body.appendChild(vrButton);
-    
-    // Configurar posición VR - altura humana en el centro
-    renderer.xr.addEventListener('sessionstart', () => {
-        // Ajustar la posición base para VR a altura de ojos humano
-        camera.position.set(0, 1.6, 0);
+
+    // AL ENTRAR VR → Ajustar altura a 1.6m
+    renderer.xr.addEventListener("sessionstart", () => {
+        const refSpace = renderer.xr.getReferenceSpace();
+        renderer.xr.setReferenceSpace(
+            refSpace.getOffsetReferenceSpace(
+                new XRRigidTransform({ x: 0, y: 1.6, z: 0 })
+            )
+        );
     });
 
-    // Controles de órbita para modo desktop
+    // OrbitControls solo fuera de VR
     controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.6, -3); // Mirar hacia el frente del salón
+    controls.target.set(0, 1.6, -3);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 0.5; // Permitir acercarse
-    controls.maxDistance = 20; // Limitar alejamiento
-    controls.maxPolarAngle = Math.PI * 0.95; // Evitar que la cámara vaya bajo el suelo
+    controls.minDistance = 0.5;
+    controls.maxDistance = 20;
+    controls.maxPolarAngle = Math.PI * 0.95;
     controls.update();
 
-    // Iluminación
+    // Luces
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(10, 20, 10);
     directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.mapSize.set(2048, 2048);
     directionalLight.shadow.camera.far = 50;
     scene.add(directionalLight);
 
-    // Luz hemisférica para iluminación natural
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
     hemiLight.position.set(0, 20, 0);
     scene.add(hemiLight);
 
-    // Agregar un plano de suelo si el modelo no tiene uno
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
-    const groundMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x505050,
-        roughness: 0.8,
-        metalness: 0.2
-    });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    // Suelo por si el modelo no trae uno
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshStandardMaterial({ color: 0x505050, roughness: 0.8, metalness: 0.2 })
+    );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = 0;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Crear nubes
+    // Nubes
     createClouds();
 
-    // Cargar el modelo GLB (KITCHEN) - Optimizado para carga rápida
+    // Cargar modelo GLB
     const loader = new GLTFLoader();
     const loadingElement = document.getElementById('loading');
-    
+
     loader.load(
         'models/KITCHEN.glb',
         (gltf) => {
             model = gltf.scene;
-            
+
             const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
-            
-            // Configurar sombras y materiales - procesamiento eficiente
+
             model.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
-                    
-                    // Procesar materiales (array o individual)
+
                     const materials = Array.isArray(child.material) ? child.material : [child.material];
-                    
+
                     materials.forEach(material => {
-                        if (material) {
-                            material.needsUpdate = true;
-                            
-                            // Cargar TODAS las texturas posibles con máxima calidad
-                            // Textura base/difusa (color)
-                            if (material.map) {
-                                material.map.anisotropy = maxAnisotropy;
-                                material.map.needsUpdate = true;
-                            }
-                            // Mapa de normales (detalles de superficie)
-                            if (material.normalMap) {
-                                material.normalMap.anisotropy = maxAnisotropy;
-                                material.normalMap.needsUpdate = true;
-                            }
-                            // Mapa de rugosidad
-                            if (material.roughnessMap) {
-                                material.roughnessMap.anisotropy = maxAnisotropy;
-                                material.roughnessMap.needsUpdate = true;
-                            }
-                            // Mapa metálico
-                            if (material.metalnessMap) {
-                                material.metalnessMap.anisotropy = maxAnisotropy;
-                                material.metalnessMap.needsUpdate = true;
-                            }
-                            // Mapa emisivo (luces/brillo)
-                            if (material.emissiveMap) {
-                                material.emissiveMap.anisotropy = maxAnisotropy;
-                                material.emissiveMap.needsUpdate = true;
-                            }
-                            // Mapa de oclusión ambiental
-                            if (material.aoMap) {
-                                material.aoMap.anisotropy = maxAnisotropy;
-                                material.aoMap.needsUpdate = true;
-                            }
-                            // Mapa de desplazamiento/altura
-                            if (material.displacementMap) {
-                                material.displacementMap.anisotropy = maxAnisotropy;
-                                material.displacementMap.needsUpdate = true;
-                            }
-                            // Mapa de transparencia/alpha
-                            if (material.alphaMap) {
-                                material.alphaMap.anisotropy = maxAnisotropy;
-                                material.alphaMap.needsUpdate = true;
-                            }
-                            // Mapa de ambiente/reflexión
-                            if (material.envMap) {
-                                material.envMap.needsUpdate = true;
-                            }
-                            // Mapa de luz (lightmap)
-                            if (material.lightMap) {
-                                material.lightMap.anisotropy = maxAnisotropy;
-                                material.lightMap.needsUpdate = true;
-                            }
-                            // Mapa de relieve (bump)
-                            if (material.bumpMap) {
-                                material.bumpMap.anisotropy = maxAnisotropy;
-                                material.bumpMap.needsUpdate = true;
-                            }
-                            // Mapa especular
-                            if (material.specularMap) {
-                                material.specularMap.anisotropy = maxAnisotropy;
-                                material.specularMap.needsUpdate = true;
-                            }
-                            // Mapa de brillo especular
-                            if (material.specularIntensityMap) {
-                                material.specularIntensityMap.anisotropy = maxAnisotropy;
-                                material.specularIntensityMap.needsUpdate = true;
-                            }
-                            // Mapa de color especular
-                            if (material.specularColorMap) {
-                                material.specularColorMap.anisotropy = maxAnisotropy;
-                                material.specularColorMap.needsUpdate = true;
-                            }
+                        if (material && material.map) {
+                            material.map.anisotropy = maxAnisotropy;
                         }
                     });
                 }
             });
 
-            // Centrar y posicionar el modelo
+            // CENTRAR MODELO Y AJUSTAR ESCALA
             const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
-            
-            // Ajustar la escala si el modelo es muy grande o muy pequeño
+
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 10 / maxDim; // Ajustar a un tamaño razonable
+            const scale = 10 / maxDim;
             model.scale.multiplyScalar(scale);
-            
-            // Posicionar el modelo para que el usuario esté dentro
+
             box.setFromObject(model);
             box.getCenter(center);
-            model.position.x = -center.x;
-            model.position.y = 0; // Modelo en el suelo
-            model.position.z = -center.z;
+
+            // POSICIONAR COCINA ALREDEDOR DEL USUARIO
+            model.position.set(
+                -center.x,
+                -center.y,
+                -center.z - 1.5 // distancia hacia adelante
+            );
+
+            // 🔥 Acomoda el frente hacia ti
+            model.rotation.y = Math.PI;
 
             scene.add(model);
-            
+
             loadingElement.style.display = 'none';
-            console.log('✓ Modelo KITCHEN.glb cargado con todas las texturas');
+            console.log('✓ Modelo cargado y alineado para VR');
         },
         (xhr) => {
-            // Progreso de carga
             if (xhr.lengthComputable) {
-                const percent = (xhr.loaded / xhr.total) * 100;
-                loadingElement.textContent = `Cargando: ${Math.round(percent)}%`;
+                loadingElement.textContent = `Cargando: ${Math.round((xhr.loaded / xhr.total) * 100)}%`;
             }
         },
         (error) => {
-            console.error('Error al cargar el modelo:', error);
+            console.error('Error:', error);
             loadingElement.textContent = 'Error al cargar el modelo';
             loadingElement.style.color = 'red';
         }
     );
 
-    // Manejador de resize
     window.addEventListener('resize', onWindowResize);
 }
 
 function createClouds() {
-    // Crear múltiples nubes con diferentes tamaños y posiciones
-    const cloudGeometry = new THREE.SphereGeometry(1, 8, 8);
-    const cloudMaterial = new THREE.MeshStandardMaterial({
+    const cloudGeom = new THREE.SphereGeometry(1, 8, 8);
+    const cloudMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         transparent: true,
         opacity: 0.7,
@@ -246,28 +171,25 @@ function createClouds() {
 
     for (let i = 0; i < 25; i++) {
         const cloud = new THREE.Group();
-        
-        // Crear cada nube con múltiples esferas
-        const numSpheres = Math.floor(Math.random() * 4) + 3;
-        for (let j = 0; j < numSpheres; j++) {
-            const sphere = new THREE.Mesh(cloudGeometry, cloudMaterial);
-            const scale = Math.random() * 2 + 1;
-            sphere.scale.set(scale, scale * 0.8, scale);
-            sphere.position.x = (Math.random() - 0.5) * 4;
-            sphere.position.y = (Math.random() - 0.5) * 1.5;
-            sphere.position.z = (Math.random() - 0.5) * 4;
-            cloud.add(sphere);
+        const num = Math.floor(Math.random() + 3);
+
+        for (let j = 0; j < num; j++) {
+            const sp = new THREE.Mesh(cloudGeom, cloudMat);
+            const s = Math.random() * 2 + 1;
+            sp.scale.set(s, s * 0.8, s);
+            sp.position.x = (Math.random() - 0.5) * 4;
+            sp.position.y = (Math.random() - 0.5) * 1.5;
+            sp.position.z = (Math.random() - 0.5) * 4;
+            cloud.add(sp);
         }
-        
-        // Posicionar nubes en el cielo alrededor del salón
+
         cloud.position.x = (Math.random() - 0.5) * 200;
         cloud.position.y = Math.random() * 30 + 40;
         cloud.position.z = (Math.random() - 0.5) * 200;
-        
-        // Escala general de la nube
-        const cloudScale = Math.random() * 3 + 2;
-        cloud.scale.set(cloudScale, cloudScale, cloudScale);
-        
+
+        const sc = Math.random() * 3 + 2;
+        cloud.scale.set(sc, sc, sc);
+
         clouds.push(cloud);
         scene.add(cloud);
     }
@@ -285,31 +207,18 @@ function animate() {
 
 function render() {
     const delta = clock.getDelta();
-    const time = clock.getElapsedTime();
-    
-    // Animar nubes (movimiento lento)
-    clouds.forEach((cloud, index) => {
-        cloud.position.x += Math.sin(time * 0.1 + index) * 0.01;
-        cloud.position.z += Math.cos(time * 0.1 + index) * 0.01;
-        
-        // Si la nube se aleja mucho, reiniciar posición
-        if (Math.abs(cloud.position.x) > 150) {
-            cloud.position.x = -cloud.position.x;
-        }
-        if (Math.abs(cloud.position.z) > 150) {
-            cloud.position.z = -cloud.position.z;
-        }
+
+    // Animación nubes
+    clouds.forEach((cloud, i) => {
+        cloud.position.x += Math.sin(clock.elapsedTime * 0.1 + i) * 0.01;
+        cloud.position.z += Math.cos(clock.elapsedTime * 0.1 + i) * 0.01;
     });
-    
-    // Actualizar controles solo si no estamos en VR
+
+    // Solo usar OrbitControls si NO estamos en VR
     if (!renderer.xr.isPresenting) {
         controls.update();
     }
-    
-    // Si el modelo tiene animaciones, actualizarlas aquí
-    if (model && model.mixer) {
-        model.mixer.update(delta);
-    }
-    
+
     renderer.render(scene, camera);
 }
+
