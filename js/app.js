@@ -17,15 +17,15 @@ function init() {
     scene.background = new THREE.Color(0x87ceeb); // Cielo azul
     scene.fog = new THREE.Fog(0xb0d4f1, 100, 500);
 
-    // Configurar la cámara (posición de estudiante dentro del salón)
+    // Configurar la cámara (posición dentro de la cocina)
     camera = new THREE.PerspectiveCamera(
-        75,
+        75, // FOV - buen campo de visión para VR
         window.innerWidth / window.innerHeight,
         0.1,
         1000
     );
-    // Esta posición ahora será la altura en VR porque usaremos 'local'
-    camera.position.set(0, 1.6, 0); // Altura de ojos humano (1.6m) en el centro
+    // Posición inicial dentro de la cocina con altura de ojos humana
+    camera.position.set(0, 1.7, 0); // 1.7m = altura promedio de ojos humanos
 
     // Configurar el renderer con WebXR - optimizado para carga rápida
     renderer = new THREE.WebGLRenderer({ 
@@ -53,7 +53,7 @@ function init() {
 
     // Controles de órbita para modo desktop
     controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.6, -3); // Mirar hacia el frente del salón
+    controls.target.set(0, 1.5, -2); // Mirar hacia adelante en la cocina
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.minDistance = 0.5; // Permitir acercarse
@@ -200,17 +200,18 @@ function init() {
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             
-            // Ajustar la escala si el modelo es muy grande o muy pequeño
+            // Ajustar la escala para que la cocina tenga un tamaño realista
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 10 / maxDim; // Ajustar a un tamaño razonable
+            const scale = 8 / maxDim; // Escala para cocina de tamaño real
             model.scale.multiplyScalar(scale);
             
-            // Posicionar el modelo para que el usuario esté dentro
+            // Posicionar el modelo para que estés dentro de la cocina
             box.setFromObject(model); // Recalcular box con la nueva escala
             box.getCenter(center);
+            
+            // Centrar la cocina en X y Z, y asegurar que el piso esté en Y=0
             model.position.x = -center.x;
-            // <-- CAMBIO 3 (Recomendación): Asegura que la base del modelo esté en y=0
-            model.position.y = -box.min.y; 
+            model.position.y = -box.min.y; // Base del modelo en el suelo
             model.position.z = -center.z;
 
             scene.add(model);
