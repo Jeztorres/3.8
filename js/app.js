@@ -24,6 +24,7 @@ function init() {
         0.1,
         1000
     );
+    // Esta posición ahora será la altura en VR porque usaremos 'local'
     camera.position.set(0, 1.6, 0); // Altura de ojos humano (1.6m) en el centro
 
     // Configurar el renderer con WebXR - optimizado para carga rápida
@@ -39,17 +40,16 @@ function init() {
     
     // Habilitar WebXR
     renderer.xr.enabled = true;
+    // <-- CAMBIO 1: Usar 'local' para respetar la altura de la cámara (1.6m)
+    renderer.xr.setReferenceSpaceType('local'); 
     document.getElementById('container').appendChild(renderer.domElement);
 
     // Agregar botón VR
     const vrButton = VRButton.createButton(renderer);
     document.body.appendChild(vrButton);
     
-    // Configurar posición VR - altura humana en el centro
-    renderer.xr.addEventListener('sessionstart', () => {
-        // Ajustar la posición base para VR a altura de ojos humano
-        camera.position.set(0, 1.6, 0);
-    });
+    // <-- CAMBIO 2: Se eliminó el addEventListener('sessionstart') que
+    // intentaba poner camera.position.set(0, 1.6, 0) y causaba el conflicto.
 
     // Controles de órbita para modo desktop
     controls = new OrbitControls(camera, renderer.domElement);
@@ -120,6 +120,7 @@ function init() {
                             material.needsUpdate = true;
                             
                             // Cargar TODAS las texturas posibles con máxima calidad
+                            // ... (todo el código de texturas se mantiene igual)
                             // Textura base/difusa (color)
                             if (material.map) {
                                 material.map.anisotropy = maxAnisotropy;
@@ -205,10 +206,11 @@ function init() {
             model.scale.multiplyScalar(scale);
             
             // Posicionar el modelo para que el usuario esté dentro
-            box.setFromObject(model);
+            box.setFromObject(model); // Recalcular box con la nueva escala
             box.getCenter(center);
             model.position.x = -center.x;
-            model.position.y = 0; // Modelo en el suelo
+            // <-- CAMBIO 3 (Recomendación): Asegura que la base del modelo esté en y=0
+            model.position.y = -box.min.y; 
             model.position.z = -center.z;
 
             scene.add(model);
