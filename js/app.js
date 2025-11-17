@@ -12,11 +12,12 @@ init();
 animate();
 
 function init() {
+    // Crear escena
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0xb0d4f1, 100, 500);
 
-    // Cámara VR SIEMPRE EN ORIGEN
+    // Cámara VR comienza siempre en (0,0,0)
     camera = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
@@ -25,6 +26,7 @@ function init() {
     );
     camera.position.set(0, 0, 0);
 
+    // Renderer con WebXR
     renderer = new THREE.WebGLRenderer({
         antialias: true,
         powerPreference: "high-performance"
@@ -38,11 +40,11 @@ function init() {
 
     document.getElementById('container').appendChild(renderer.domElement);
 
-    // VR BUTTON
+    // Botón VR
     const vrButton = VRButton.createButton(renderer);
     document.body.appendChild(vrButton);
 
-    // Al entrar VR, subir usuario a 1.6m
+    // ALTURA HUMANA EN VR = AQUÍ
     renderer.xr.addEventListener("sessionstart", () => {
         const space = renderer.xr.getReferenceSpace();
         renderer.xr.setReferenceSpace(
@@ -52,14 +54,13 @@ function init() {
         );
     });
 
-    // OrbitControls solo fuera de VR
+    // Controles para modo no-VR
     controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 1.6, -3);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI * 0.95;
 
-    // Luces
+    // Luces base
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -70,7 +71,7 @@ function init() {
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.4));
 
-    // Suelo base
+    // Suelo por si hace falta
     const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(100, 100),
         new THREE.MeshStandardMaterial({ color: 0x505050 })
@@ -92,45 +93,42 @@ function init() {
 
             const maxAni = renderer.capabilities.getMaxAnisotropy();
 
-            // optimizar texturas
-            model.traverse((c) => {
-                if (c.isMesh) {
-                    c.castShadow = true;
-                    c.receiveShadow = true;
-                    if (c.material && c.material.map) {
-                        c.material.map.anisotropy = maxAni;
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    if (child.material && child.material.map) {
+                        child.material.map.anisotropy = maxAni;
                     }
                 }
             });
 
-            // Calcular bounding box
+            // Centrar modelo
             const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
 
-            // Ajustar escala
+            // Ajustar escala si hace falta
             const maxDim = Math.max(size.x, size.y, size.z);
             const scale = 10 / maxDim;
             model.scale.multiplyScalar(scale);
 
-            // Recalcular
+            // Recalcular centro
             box.setFromObject(model);
             box.getCenter(center);
 
-            // 💥 POSICIÓN AJUSTADA: Dentro de la cocina
-            model.position.set(
-                -center.x,       // Centrado en X
-                -center.y + 0.1, // Ajuste vertical piso
-                -center.z + 0.5  // ACERCAR (antes -1.5)
-            );
+            // POSICIÓN ORIGINAL CORRECTA (DENTRO)
+            model.position.x = -center.x;
+            model.position.y = 0;
+            model.position.z = -center.z;
 
-            // Mirar hacia adentro
+            // Mantener rotación hacia la cocina (si usabas esto)
             model.rotation.y = Math.PI;
 
             scene.add(model);
 
             loadingEl.style.display = 'none';
-            console.log("✓ Cocina VR Lista");
+            console.log("✓ Modelo en posición y VR a altura humana");
         },
         (xhr) => {
             if (xhr.lengthComputable) {
@@ -150,8 +148,8 @@ function createClouds() {
     const geo = new THREE.SphereGeometry(1, 8, 8);
     const mat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        opacity: 0.7,
-        transparent: true
+        transparent: true,
+        opacity: 0.7
     });
 
     for (let i = 0; i < 25; i++) {
@@ -194,8 +192,11 @@ function animate() {
 }
 
 function render() {
-    if (!renderer.xr.isPresenting) controls.update();
+    if (!renderer.xr.isPresenting) {
+        controls.update();
+    }
     renderer.render(scene, camera);
 }
+
 
 
