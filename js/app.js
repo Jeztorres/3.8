@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
@@ -90,15 +89,8 @@ function init() {
     // Crear nubes
     createClouds();
 
-    // Configurar DRACO Loader para compresión de geometría
-    const dracoLoader = new DRACOLoader();
-    // Usar CDN para los decodificadores DRACO
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    dracoLoader.setDecoderConfig({ type: 'js' });
-    
-    // Cargar el modelo GLB (KITCHEN) - Optimizado con DRACO
+    // Cargar el modelo GLB (KITCHEN) - Optimizado para carga rápida
     const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader);
     const loadingElement = document.getElementById('loading');
     
     loader.load(
@@ -121,30 +113,75 @@ function init() {
                         if (material) {
                             material.needsUpdate = true;
                             
-                            // Cargar todas las texturas con máxima calidad
+                            // Cargar TODAS las texturas posibles con máxima calidad
+                            // Textura base/difusa (color)
                             if (material.map) {
                                 material.map.anisotropy = maxAnisotropy;
                                 material.map.needsUpdate = true;
                             }
+                            // Mapa de normales (detalles de superficie)
                             if (material.normalMap) {
                                 material.normalMap.anisotropy = maxAnisotropy;
                                 material.normalMap.needsUpdate = true;
                             }
+                            // Mapa de rugosidad
                             if (material.roughnessMap) {
                                 material.roughnessMap.anisotropy = maxAnisotropy;
                                 material.roughnessMap.needsUpdate = true;
                             }
+                            // Mapa metálico
                             if (material.metalnessMap) {
                                 material.metalnessMap.anisotropy = maxAnisotropy;
                                 material.metalnessMap.needsUpdate = true;
                             }
+                            // Mapa emisivo (luces/brillo)
                             if (material.emissiveMap) {
                                 material.emissiveMap.anisotropy = maxAnisotropy;
                                 material.emissiveMap.needsUpdate = true;
                             }
+                            // Mapa de oclusión ambiental
                             if (material.aoMap) {
                                 material.aoMap.anisotropy = maxAnisotropy;
                                 material.aoMap.needsUpdate = true;
+                            }
+                            // Mapa de desplazamiento/altura
+                            if (material.displacementMap) {
+                                material.displacementMap.anisotropy = maxAnisotropy;
+                                material.displacementMap.needsUpdate = true;
+                            }
+                            // Mapa de transparencia/alpha
+                            if (material.alphaMap) {
+                                material.alphaMap.anisotropy = maxAnisotropy;
+                                material.alphaMap.needsUpdate = true;
+                            }
+                            // Mapa de ambiente/reflexión
+                            if (material.envMap) {
+                                material.envMap.needsUpdate = true;
+                            }
+                            // Mapa de luz (lightmap)
+                            if (material.lightMap) {
+                                material.lightMap.anisotropy = maxAnisotropy;
+                                material.lightMap.needsUpdate = true;
+                            }
+                            // Mapa de relieve (bump)
+                            if (material.bumpMap) {
+                                material.bumpMap.anisotropy = maxAnisotropy;
+                                material.bumpMap.needsUpdate = true;
+                            }
+                            // Mapa especular
+                            if (material.specularMap) {
+                                material.specularMap.anisotropy = maxAnisotropy;
+                                material.specularMap.needsUpdate = true;
+                            }
+                            // Mapa de brillo especular
+                            if (material.specularIntensityMap) {
+                                material.specularIntensityMap.anisotropy = maxAnisotropy;
+                                material.specularIntensityMap.needsUpdate = true;
+                            }
+                            // Mapa de color especular
+                            if (material.specularColorMap) {
+                                material.specularColorMap.anisotropy = maxAnisotropy;
+                                material.specularColorMap.needsUpdate = true;
                             }
                         }
                     });
@@ -171,7 +208,7 @@ function init() {
             scene.add(model);
             
             loadingElement.style.display = 'none';
-            console.log('✓ Modelo KITCHEN cargado con todas las texturas');
+            console.log('✓ Modelo KITCHEN.glb cargado con todas las texturas');
         },
         (xhr) => {
             // Progreso de carga
