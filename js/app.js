@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
@@ -26,12 +27,16 @@ function init() {
     );
     camera.position.set(0, 1.6, 0); // Altura de ojos humano (1.6m) en el centro
 
-    // Configurar el renderer con WebXR
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Configurar el renderer con WebXR - optimizado para carga rápida
+    renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        powerPreference: "high-performance"
+    });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     
     // Habilitar WebXR
     renderer.xr.enabled = true;
@@ -85,25 +90,64 @@ function init() {
     // Crear nubes
     createClouds();
 
-    // Cargar el modelo FBX
-    const loader = new FBXLoader();
+    // Configurar DRACO Loader para compresión de geometría
+    const dracoLoader = new DRACOLoader();
+    // Usar CDN para los decodificadores DRACO
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+    dracoLoader.setDecoderConfig({ type: 'js' });
+    
+    // Cargar el modelo GLB (KITCHEN) - Optimizado con DRACO
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
     const loadingElement = document.getElementById('loading');
     
     loader.load(
-        'models/salon de clases.fbx',
-        (fbx) => {
-            model = fbx;
+        'models/KITCHEN.glb',
+        (gltf) => {
+            model = gltf.scene;
             
-            // Configurar sombras para el modelo
+            const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+            
+            // Configurar sombras y materiales - procesamiento eficiente
             model.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
                     
-                    // Asegurar que los materiales se rendericen correctamente
-                    if (child.material) {
-                        child.material.needsUpdate = true;
-                    }
+                    // Procesar materiales (array o individual)
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                    
+                    materials.forEach(material => {
+                        if (material) {
+                            material.needsUpdate = true;
+                            
+                            // Cargar todas las texturas con máxima calidad
+                            if (material.map) {
+                                material.map.anisotropy = maxAnisotropy;
+                                material.map.needsUpdate = true;
+                            }
+                            if (material.normalMap) {
+                                material.normalMap.anisotropy = maxAnisotropy;
+                                material.normalMap.needsUpdate = true;
+                            }
+                            if (material.roughnessMap) {
+                                material.roughnessMap.anisotropy = maxAnisotropy;
+                                material.roughnessMap.needsUpdate = true;
+                            }
+                            if (material.metalnessMap) {
+                                material.metalnessMap.anisotropy = maxAnisotropy;
+                                material.metalnessMap.needsUpdate = true;
+                            }
+                            if (material.emissiveMap) {
+                                material.emissiveMap.anisotropy = maxAnisotropy;
+                                material.emissiveMap.needsUpdate = true;
+                            }
+                            if (material.aoMap) {
+                                material.aoMap.anisotropy = maxAnisotropy;
+                                material.aoMap.needsUpdate = true;
+                            }
+                        }
+                    });
                 }
             });
 
@@ -127,16 +171,18 @@ function init() {
             scene.add(model);
             
             loadingElement.style.display = 'none';
-            console.log('Modelo cargado exitosamente');
+            console.log('✓ Modelo KITCHEN cargado con todas las texturas');
         },
         (xhr) => {
             // Progreso de carga
-            const percent = (xhr.loaded / xhr.total) * 100;
-            loadingElement.textContent = `Cargando modelo: ${Math.round(percent)}%`;
+            if (xhr.lengthComputable) {
+                const percent = (xhr.loaded / xhr.total) * 100;
+                loadingElement.textContent = `Cargando: ${Math.round(percent)}%`;
+            }
         },
         (error) => {
             console.error('Error al cargar el modelo:', error);
-            loadingElement.textContent = 'Error al cargar el modelo. Verifica la consola.';
+            loadingElement.textContent = 'Error al cargar el modelo';
             loadingElement.style.color = 'red';
         }
     );
