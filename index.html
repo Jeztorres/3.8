@@ -1,32 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visor VR - Salón de Clases</title>
-    <link rel="stylesheet" href="css/styles.css">
+  <meta charset="utf-8" />
+  <title>Cocina VR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: system-ui, sans-serif;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 10;
+      background: radial-gradient(circle at top, #333, #000);
+    }
+  </style>
+  
+  <!-- Import map para resolver "three" y addons desde CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
-    <div id="info">
-        <h1>Visor VR - Cocina 3D</h1>
-        <p>Usa el botón VR para ingresar al modo de realidad virtual</p>
-        <div id="loading">Cargando modelo 3D...</div>
-    </div>
-    
-    <button id="vrButton" style="display: none;">ENTRAR A VR</button>
-    
-    <div id="container"></div>
+  <div id="loading">Cargando cocina...</div>
 
-    <!-- Three.js y dependencias -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
-    
-    <script type="module" src="js/app.js"></script>
+  <!-- Nuestro JS principal como módulo -->
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
