@@ -1,29 +1,20 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Cocina VR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #000;
-      font-family: system-ui, sans-serif;
-    }
 
-    #loading {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      z-index: 10;
-      background: radial-gradient(circle at top, #333, #000);
-    }
-  </style>
-  
+  <!-- Google Fonts: Rajdhani (Futuristic) & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Rajdhani:wght@500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="./css/style.css">
+
   <!-- Import map para resolver "three" y addons desde CDN -->
   <script type="importmap">
     {
@@ -34,10 +25,31 @@
     }
   </script>
 </head>
+
 <body>
-  <div id="loading">Cargando cocina...</div>
+  <section id="references">
+    <h2>Referencias</h2>
+    <div class="ref-image-container">
+      <div class="ref-card">
+        <img src="./assets/reference_images/20251116_161917.jpg" alt="Vista Principal" class="ref-image">
+        <span class="ref-label">Vista Principal</span>
+      </div>
+      <div class="ref-card">
+        <img src="./assets/reference_images/20251116_161922(0).jpg" alt="Detalle Cocina" class="ref-image">
+        <span class="ref-label">Detalle Cocina</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="vr-container">
+    <div id="loading">
+      <div class="loader"></div>
+      <div class="loading-text">Cargando experiencia...</div>
+    </div>
+  </section>
 
   <!-- Nuestro JS principal como módulo -->
   <script type="module" src="./js/main.js"></script>
 </body>
+
 </html>

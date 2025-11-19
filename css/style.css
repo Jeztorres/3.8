@@ -1,0 +1,250 @@
+/* Futuristic Cyberpunk Theme */
+:root {
+  --bg-primary: #050505;
+  --bg-secondary: rgba(20, 20, 25, 0.8);
+  --bg-tertiary: rgba(30, 30, 35, 0.6);
+  --accent-cyan: #00f3ff;
+  --accent-purple: #bc13fe;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+  --shadow-glow: 0 0 15px rgba(0, 243, 255, 0.15);
+
+  --font-main: 'Rajdhani', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: 3px;
+}
+
+/* Sidebar / References Section */
+#references {
+  width: 340px;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  backdrop-filter: blur(12px);
+  border-right: var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  z-index: 20;
+  position: relative;
+}
+
+#references::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-purple));
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+#references h2 {
+  font-family: var(--font-main);
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  padding-bottom: 16px;
+  border-bottom: var(--glass-border);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+/* Image Cards */
+.ref-image-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ref-card {
+  background: var(--bg-tertiary);
+  border: var(--glass-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.ref-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-cyan);
+  box-shadow: var(--shadow-glow);
+}
+
+.ref-image {
+  width: 100%;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.ref-card:hover .ref-image {
+  transform: scale(1.05);
+}
+
+.ref-label {
+  display: block;
+  padding: 10px 12px;
+  font-family: var(--font-main);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.4);
+  border-top: var(--glass-border);
+}
+
+.ref-card:hover .ref-label {
+  color: var(--accent-cyan);
+}
+
+/* VR Container */
+#vr-container {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+}
+
+/* Loading Overlay */
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 5, 5, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+  gap: 20px;
+}
+
+.loader {
+  width: 60px;
+  height: 60px;
+  border: 2px solid transparent;
+  border-top-color: var(--accent-cyan);
+  border-bottom-color: var(--accent-purple);
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+}
+
+.loading-text {
+  font-family: var(--font-main);
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  animation: pulse 2s infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  body {
+    flex-direction: column-reverse;
+    /* Canvas on top (visually), Controls bottom */
+  }
+
+  #references {
+    width: 100%;
+    height: 35%;
+    /* Take up bottom 35% */
+    border-right: none;
+    border-top: var(--glass-border);
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 16px;
+    background: rgba(10, 10, 12, 0.95);
+  }
+
+  #references::before {
+    width: 100%;
+    height: 2px;
+    top: 0;
+    left: 0;
+    background: linear-gradient(to right, var(--accent-cyan), var(--accent-purple));
+  }
+
+  #references h2 {
+    display: none;
+  }
+
+  .ref-image-container {
+    flex-direction: row;
+    height: 100%;
+    width: max-content;
+    /* Allow horizontal scroll */
+  }
+
+  .ref-card {
+    width: 200px;
+    height: 100%;
+    flex-shrink: 0;
+  }
+
+  .ref-image {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  #vr-container {
+    height: 65%;
+    /* Top 65% */
+  }
+}
