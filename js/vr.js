@@ -40,12 +40,16 @@ export function setupVR(renderer, camera) {
     document.body.appendChild(btn);
   }
 
-  // CUANDO EL USUARIO ENTRA A VR → USAR POSICION 0,0,0 (CENTRO DEL MODELO)
+  // CUANDO EL USUARIO ENTRA A VR → USAR POSICION ACTUAL DE LA CAMARA (ORBIT CONTROLS)
   renderer.xr.addEventListener("sessionstart", () => {
+    // Copiamos la posición y rotación exacta de la cámara de escritorio
+    // Esto permite al usuario "volar" con el mouse a donde quiera y entrar a VR ahí.
+    const pos = camera.position.clone();
+    const rot = camera.quaternion.clone();
+
     const xrCamera = renderer.xr.getCamera(camera);
-    // Move slightly back (z=1.5) to avoid being inside the center object/wall
-    xrCamera.position.set(0, 0, 1.5);
-    xrCamera.quaternion.set(0, 0, 0, 1);
+    xrCamera.position.copy(pos);
+    xrCamera.quaternion.copy(rot);
   });
 }
 
