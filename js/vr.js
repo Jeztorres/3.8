@@ -42,15 +42,10 @@ export function setupVR(renderer, camera) {
 
   // CUANDO EL USUARIO ENTRA A VR → USAR POSICION 0,0,0 (CENTRO DEL MODELO)
   renderer.xr.addEventListener("sessionstart", () => {
-    // En modo VR con local-floor, queremos que el usuario esté en el origen (0,0,0)
-    // y su altura física determine la altura de los ojos.
-    // Si copiamos la cámara de escritorio (0, 1.6, 0), podríamos sumar altura doble.
-
     const xrCamera = renderer.xr.getCamera(camera);
-    xrCamera.position.set(0, 0, 0);
+    // Move slightly back (z=1.5) to avoid being inside the center object/wall
+    xrCamera.position.set(0, 0, 1.5);
     xrCamera.quaternion.set(0, 0, 0, 1);
-
-    // Opcional: Si el usuario necesita mirar hacia algun lado especifico, rotamos aqui.
   });
 }
 
